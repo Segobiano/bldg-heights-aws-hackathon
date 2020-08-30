@@ -1,0 +1,131 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: >-
+  Urban Insitute Workflow IAM Roles
+
+Parameters:
+
+  WFName:
+    Type: String
+
+
+  Environment:
+    Type: String
+    AllowedValues: [dev, test, prod]
+
+  CFTemplateS3Path:
+    Type: String
+
+Resources:
+
+
+  DataloaderInstanceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/SecretsManagerReadWrite
+        - 'arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore'
+        - 'arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy'
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+
+  DataloaderInstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Path: /
+      Roles:
+        - !Ref DataloaderInstanceRole
+
+  RedshiftClusterS3AccessRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service:
+                - redshift.amazonaws.com
+
+  RDSPostgresEnhancedMonitoringRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service:
+                - monitoring.rds.amazonaws.com
+
+  SageMakerIamRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: sagemaker.amazonaws.com
+            Action: sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonSageMakerFullAccess"
+        - "arn:aws:iam::aws:policy/SecretsManagerReadWrite"
+        - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+#
+#  SageMakerPolicy:
+#    Type: "AWS::IAM::ManagedPolicy"
+#    Properties:
+#      Description: "SageMaker Policy"
+
+Outputs:
+
+  DataloaderInstanceRole:
+    Value: !Ref DataloaderInstanceRole
+    Export:
+      Name: !Sub "role-${WFName}-${Environment}-dataloader"
+
+  DataloaderInstanceProfile:
+    Value: !Ref DataloaderInstanceProfile
+    Export:
+      Name: !Sub "instprof-${WFName}-${Environment}-dataloader"
+
+  RedshiftClusterS3AccessRole:
+    Value: !Ref RedshiftClusterS3AccessRole
+    Export:
+      Name: !Sub "role-${WFName}-${Environment}-redshifts3access"
+
+  RDSPostgresEnhancedMonitoringRole:
+    Value: !Ref RDSPostgresEnhancedMonitoringRole
+    Export:
+      Name: !Sub "role-${WFName}-${Environment}-enhancedpostgressmonitoring"
+
+  RDSPostgresEnhancedMonitoringRoleArn:
+    Value: !GetAtt RDSPostgresEnhancedMonitoringRole.Arn
+    Export:
+      Name: !Sub "role-${WFName}-${Environment}-enhancedpostgressmonitoringarn"
+
+  SageMakerIamRoleArn:
+    Value: !GetAtt SageMakerIamRole.Arn
+    Export:
+      Name: !Sub "role-${WFName}-${Environment}-sagemakerarn"
